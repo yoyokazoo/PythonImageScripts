@@ -6,29 +6,37 @@ from PIL import Image as PImage
 
 def loadImages(srcPath, imgSuffix):
 	imagesList = os.listdir(srcPath)
-	loadedImages = []
+	loadedImages = {}
 	for image in imagesList:
 		if image.endswith(imgSuffix):
 			img = PImage.open(srcPath + image)
-			loadedImages.append(img)
+			loadedImages[image] = img
 
 	return loadedImages
 
 def findUniquePixels(images):
 	uniquePixels = []
 
-	width = images[0].size[0]
-	height = images[0].size[1]
+	width = -1
+	height = -1
+	firstImage = ""
+	for imagePath in images:
+		image = images[imagePath]
+		if width == -1 and height == -1:
+			width = image.size[0]
+			height = image.size[1]
+			firstImage = imagePath
 
-	print("For image %s width = %d height = %d" % (images[0], width, height))
+		if width != image.size[0] or height != image.size[1]:
+			raise Exception("Not all images are the same width height! Found both {0},{1} ({4}) and {2},{3} ({5})".format(width, height, image.size[0], image.size[1], firstImage, imagePath))
+
 	for x in range(width):
 		for y in range(height):
 			pixelsSeenSoFar = {}
 			pixelUnique = True
 
-			for image in images:
+			for image in images.values():
 				pixelBeingChecked = image.getpixel((x,y))
-				#print(pixelBeingChecked)
 				if pixelBeingChecked in pixelsSeenSoFar:
 					pixelUnique = False
 					break
@@ -42,8 +50,8 @@ def findUniquePixels(images):
 
 def printPixel(pixel, images):
 	print("Printing pixel {0}".format(pixel))
-	for image in images:
-		print("\t%s: %s" % (image, image.getpixel(pixel)))
+	for imagePath in images:
+		print("\t%s:\t%s" % (imagePath, images[imagePath].getpixel(pixel)))
 
 def printUniquePixels(uniquePixels, images):
 	print("Unique Pixels: %s" % uniquePixels)
@@ -62,5 +70,6 @@ print(args)
 
 loadedImages = loadImages(args.src, args.img_suffix)
 uniquePixels = findUniquePixels(loadedImages)
+#pixelUniquenessScores = findPixelUniquenessScores(uniquePixels, loadedImages)
 
 printUniquePixels(uniquePixels, loadedImages)
