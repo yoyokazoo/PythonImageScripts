@@ -1,29 +1,57 @@
-from os import listdir
+import sys
+import os
+import argparse
+from ast import literal_eval
 from PIL import Image as PImage
 
-def cropImages(src_path, dest_path, tupleArray):
-	# return array of images
+def cropImages(srcPath, destPath, imgSuffix, tupleList):
+	# clear out the dest directory of any images, so user can re-run indiscriminately
+	for subDir, dirs, files in os.walk(destPath):
+		for fileName in files:
+			if fileName.endswith(imgSuffix):
+				os.remove(os.path.join(subDir, fileName))
 
-	imagesList = listdir(src_path)
+	imagesList = os.listdir(srcPath)
 	loadedImages = []
 	for image in imagesList:
-		if image[0] != ".":
-			img = PImage.open(src_path + image)
+		if image.endswith(imgSuffix):
+			img = PImage.open(srcPath + image)
 			loadedImages.append(img)
 
-			for arrayIndex in range(len(tupleArray)):
-				cropTuple = tupleArray[arrayIndex]
+			for index in range(len(tupleList)):
+				cropTuple = tupleList[index]
 				newImg = img.crop(cropTuple)
-				newImg.save(dest_path + str(arrayIndex) + "_" + image)
+				newImg.save(destPath + str(index) + "_" + image)
 
 	return loadedImages
 
-SRC_IMAGE_PATH = "./source_images/"
-DEST_IMAGE_PATH = "./dest_images/"
+DEFAULT_SRC_IMAGE_PATH = "./source_images/"
+DEFAULT_DEST_IMAGE_PATH = "./dest_images/"
+DEFAULT_IMG_SUFFIX = ".png"
 
-firstTuple = (2888, 329, 2888 + 31, 329 + 44)
-secondTuple = (2924, 329, 2924 + 31, 329 + 44)
+parser = argparse.ArgumentParser() 
+parser.add_argument('-s', '--src', help="Path to source image directory, something like the default, ./source_images/", default=DEFAULT_SRC_IMAGE_PATH)
+parser.add_argument('-d', '--dest', help="Path to destination image directory, something like the default, ./dest_images/", default=DEFAULT_DEST_IMAGE_PATH)
+parser.add_argument('-i', '--img_suffix', help="Image suffix, something like the default, .png", default=DEFAULT_IMG_SUFFIX)
+parser.add_argument('-c', '--crops',help="Any number of 4-tuples which specify the top,left,width,height and bottom-right coordinates, something like '-c (0,0,100,100) (100,100,100,100)'",  nargs='*', required=True)
+args = parser.parse_args()
+print(args)
 
-tupleArray = [firstTuple, secondTuple]
+tupleList = []
+# a little scrappy
+for stringTuple in args.crops:
+	actualTuple = literal_eval(stringTuple)
+	# crop takes top/left bottom/right, which isn't as convenient as top/left width/height, especially when extracting a repeating pattern in an image
+	cropTuple = (actualTuple[0], actualTuple[1], actualTuple[0] + actualTuple[2], actualTuple[1] + actualTuple[3])
+	tupleList.append(cropTuple)
 
-cropImages(SRC_IMAGE_PATH, DEST_IMAGE_PATH, tupleArray)
+if not (args.dest[-1] == "/" or args.dest[-1] == "\\"):
+	args.dest = args.dest + "/"
+
+# create dest directory, if necessary
+if not os.path.isdir(args.dest):
+		os.mkdir(args.dest);
+
+cropImages(args.src, args.dest, args.img_suffix, tupleList)
+
+print("All images cropped.")
