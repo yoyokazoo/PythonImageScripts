@@ -12,18 +12,13 @@ def cropImages(srcPath, destPath, imgSuffix, tupleList):
 				os.remove(os.path.join(subDir, fileName))
 
 	imagesList = os.listdir(srcPath)
-	loadedImages = []
 	for image in imagesList:
 		if image.endswith(imgSuffix):
 			img = PImage.open(srcPath + image)
-			loadedImages.append(img)
-
 			for index in range(len(tupleList)):
 				cropTuple = tupleList[index]
 				newImg = img.crop(cropTuple)
 				newImg.save(destPath + str(index) + "_" + image)
-
-	return loadedImages
 
 DEFAULT_SRC_IMAGE_PATH = "./source_images/"
 DEFAULT_DEST_IMAGE_PATH = "./dest_images/"
